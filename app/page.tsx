@@ -23,12 +23,12 @@ type moveActionType =
     | "right"
 
 const tileRules: { [key: string]: moveActionType[] } = {
-    "grey_grey_grey_grey_grey_grey_grey_grey": ["right", "down"],
+    "grey_grey_grey_grey_grey_grey_grey_grey": [],
 }
 
 export default function Home() {
     const tileSize = 40
-    const tileCount = 100
+    const tileCount = 40
 
     const tileContRef = useRef<HTMLDivElement | null>(null)
     const tiles = useRef<tileType[]>([])
@@ -43,13 +43,13 @@ export default function Home() {
 
     }, [])
 
-    //start off loop
+    //start loop
     useEffect(() => {
         if (mounted.current) return
         mounted.current = true
 
-        //run loop
-        // runTileLoop()
+        //map all positions
+        runTileLoop()
 
     }, [])
 
@@ -226,13 +226,21 @@ export default function Home() {
                 currentColumnIndex += 1
             }
 
+            // WRAP HERE
+            currentRowIndex = wrapTileIndex(currentRowIndex)
+            currentColumnIndex = wrapTileIndex(currentColumnIndex)
+
             const foundAdjTile = seenTileRowColumnIndexObj[`${currentRowIndex}_${currentColumnIndex}`]
-            if (foundAdjTile !== undefined && foundAdjTile !== null) {
+            if (foundAdjTile !== null) {
                 tileTypeAtIndexArr[index] = foundAdjTile.type
             }
         }
 
         return tileTypeAtIndexArr
+    }
+
+    function wrapTileIndex(index: number) {
+        return (index + tileCount) % tileCount
     }
 
     function ensureInBounds(newIndex: number) {
@@ -280,10 +288,6 @@ export default function Home() {
                     <button className='button2'
                         onClick={generateTiles}
                     >generate</button>
-
-                    <button className='button2'
-                        onClick={runTileLoop}
-                    >start</button>
                 </div>
             </div>
 
