@@ -28,7 +28,7 @@ const tileRules: { [key: string]: moveActionType[] } = {
 
 export default function Home() {
     const tileSize = 40
-    const tileCount = 100
+    const tileCount = 50
 
     const tileContRef = useRef<HTMLDivElement | null>(null)
     const tiles = useRef<tileType[]>([])
