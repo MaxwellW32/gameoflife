@@ -24,85 +24,8 @@ type moveActionType =
 
 const tileRules: { [key: string]: moveActionType[] } = {
     "grey_grey_grey_grey_grey_grey_grey_grey": [],
-    "grey_grey_grey_grey_grey_grey_grey_black": [
-        "right",
-        "left"
-    ],
-    "black_grey_grey_grey_grey_grey_grey_grey": [
-        "left"
-    ],
-    "grey_grey_grey_grey_grey_grey_black_grey": [
-        "left",
-        "right"
-    ],
-    "grey_black_grey_grey_grey_grey_grey_grey": [
-        "right"
-    ],
-    "black_grey_grey_grey_grey_grey_grey_black": [
-        "left",
-        "up"
-    ],
-    "black_grey_grey_grey_grey_grey_black_grey": [
-        "left"
-    ],
-    "black_grey_black_grey_grey_grey_grey_black": [
-        "down",
-        "right"
-    ],
-    "grey_black_grey_grey_grey_black_grey_grey": [
-        "up",
-        "left",
-        "up"
-    ],
-    "grey_grey_grey_black_grey_grey_grey_black": [
-        "right",
-        "down",
-        "down"
-    ],
-    "grey_grey_grey_grey_black_grey_grey_grey": [
-        "right"
-    ],
-    "grey_black_grey_grey_black_grey_grey_black": [
-        "left"
-    ],
-    "grey_grey_grey_grey_grey_grey_black_black": [
-        "down",
-        "up"
-    ],
-    "black_grey_grey_black_grey_grey_black_grey": [
-        "down",
-        "right"
-    ],
-    "black_black_grey_grey_grey_grey_grey_grey": [
-        "right"
-    ],
-    "grey_grey_black_grey_grey_grey_grey_grey": [
-        "up",
-        "up"
-    ],
-    "grey_grey_grey_grey_grey_black_grey_black": [
-        "left",
-        "left"
-    ],
-    "grey_grey_grey_black_grey_black_grey_grey": [
-        "right",
-        "right",
-        "right"
-    ],
-    "grey_grey_grey_grey_black_grey_black_grey": [
-        "down",
-        "left",
-        "right"
-    ],
-    "grey_black_black_grey_grey_grey_grey_grey": [
-        "up"
-    ],
-    "black_grey_black_grey_grey_grey_grey_grey": [
-        "left",
-        "down",
-        "down"
-    ]
 }
+
 export default function Home() {
     const tileWidth = useRef(40)
     const tileHeight = useRef(40)
