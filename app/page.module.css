@@ -7,9 +7,15 @@
     width: var(--tileWidth);
     height: var(--tileHeight);
     transition: top 1s, left 1s;
+    pointer-events: none;
 }
 
 .grayTile {
     background-color: gray;
     border: 0.5px solid #000;
+    pointer-events: all;
+}
+
+.highlighted {
+    border: 1px solid #f00;
 }

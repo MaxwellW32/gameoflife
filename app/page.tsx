@@ -28,7 +28,7 @@ const tileRules: { [key: string]: moveActionType[] } = {
 
 export default function Home() {
     const tileSize = 40
-    const tileCount = 40
+    const tileCount = 100
 
     const tileContRef = useRef<HTMLDivElement | null>(null)
     const tiles = useRef<tileType[]>([])
@@ -79,7 +79,16 @@ export default function Home() {
 
     function makeTileAtRowColumnIndex(rowIndex: number, columnIndex: number) {
         if (tileContRef.current === null) return
-        if (tileRowColumnIndexObj.current[`${rowIndex}_${columnIndex}`] !== null) return
+        if (tileRowColumnIndexObj.current[`${rowIndex}_${columnIndex}`] !== null) {
+            const foundTile = tiles.current.find(eachTile => eachTile.rowIndex === rowIndex && eachTile.columnIndex === columnIndex)
+            console.log(`$foundTile`, foundTile);
+
+            if (foundTile !== undefined) {
+                foundTile.element.classList.toggle(styles.highlighted)
+            }
+
+            return
+        }
 
         const newTile = makeNewTile(rowIndex, columnIndex)
         console.log(`$newTile`, newTile);
@@ -159,10 +168,6 @@ export default function Home() {
         tiles.current.map(eachTile => {
             const tileSharingPos = tiles.current.find(eachTileFind => ((eachTileFind.id !== eachTile.id) && (eachTileFind.rowIndex === eachTile.rowIndex) && (eachTileFind.columnIndex === eachTile.columnIndex)))
             if (tileSharingPos !== undefined) {
-                console.log(`$eachtile`, eachTile);
-                console.log(`$sharing position with`, tileSharingPos);
-                console.log(`$so reset`);
-
                 //tile sharing position with another - cancel transformation
                 eachTile.rowIndex = startingTilePositions[eachTile.id].startingRowIndex
                 eachTile.columnIndex = startingTilePositions[eachTile.id].startingColumnIndex
