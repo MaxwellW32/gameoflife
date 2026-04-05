@@ -52,3 +52,10 @@ body {
   gap: 1rem;
   padding: 1rem;
 }
+
+.svgIcon {
+  aspect-ratio: 1/1;
+  width: 1.5rem;
+  height: 1.5rem;
+  fill: #000;
+}
