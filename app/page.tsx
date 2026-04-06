@@ -3,6 +3,9 @@ import React, { useEffect, useRef, useState } from 'react'
 import { v4 } from 'uuid'
 import styles from "./page.module.css"
 import { deepClone } from '@/utility/utility'
+import toast from 'react-hot-toast'
+import { moveActionType, tileRulesSchema, tileRulesType } from '@/types'
+import { consoleAndToastError } from '@/utility/consoleErrorWithToast'
 
 type tileType = {
     id: string,
@@ -15,12 +18,6 @@ type tileType = {
 type tileTypeAtIndexType = "black" | "white" | "grey"
 
 type tileColumnRowIndexObjType = { [key: string]: Pick<tileType, "type"> | null }
-
-type moveActionType =
-    | "up"
-    | "down"
-    | "left"
-    | "right"
 
 export default function Home() {
     const tileWidth = useRef(40)
@@ -40,11 +37,14 @@ export default function Home() {
     type screenOptionsType = typeof screenOptions
     const [screen, screenSet] = useState<screenOptionsType[number]>("home")
 
-    const tileRules = useRef<{ [key: string]: moveActionType[] }>({
+    const tileRules = useRef<tileRulesType>({
         "grey_grey_grey_grey_grey_grey_grey_grey": [],
     })
     const autoGenNewRule = useRef(true)
     const selectedRuleKey = useRef<string | undefined>(undefined)
+
+    const [showMore, setShowMore] = useState(false)
+    const [rulesInput, setRulesInput] = useState("")
 
     //xy is law
     //x - columnIndex - tileWidth - left
@@ -95,9 +95,18 @@ export default function Home() {
         if (tileContRef.current === null) return
         if (tileColumnRowIndexObj.current[`${columnIndex}_${rowIndex}`] !== null) {
             const foundTile = tiles.current.find(eachTile => eachTile.columnIndex === columnIndex && eachTile.rowIndex === rowIndex)
-
             if (foundTile !== undefined) {
                 foundTile.element.classList.toggle(styles.highlighted)
+
+                //select incase of edit
+                const seen8PointCoordsString = get8PointCoordinates(foundTile, tileColumnRowIndexObj.current).join("_")
+
+                if (tileRules.current[seen8PointCoordsString] === undefined) {
+                    tileRules.current[seen8PointCoordsString] = []
+                }
+
+                selectedRuleKey.current = seen8PointCoordsString
+                refresh()
             }
 
             return
@@ -159,6 +168,7 @@ export default function Home() {
 
                     console.log(`$no moves for ${seen8PointCoordsString} - creating new movements`);
                     console.log(`$tileRules`, tileRules.current);
+                    refresh()
 
                 } else {
                     continue
@@ -319,13 +329,50 @@ export default function Home() {
     }
 
     function generateUniqueRandomTileRules() {
-        const moveOptions: moveActionType[] = ["up", "down", "left", "right"]
+        const moveOptionsX: moveActionType[] = [
+            "left",
+            "right",
+        ]
+        const moveOptionsY: moveActionType[] = [
+            "up",
+            "down",
+        ]
 
-        const moveCount = Math.floor(Math.random() * 3) + 1
+        let endNumX = 4
+        let endNumY = 4
 
-        const newMovements = Array.from({ length: moveCount }, () =>
-            moveOptions[Math.floor(Math.random() * moveOptions.length)]
-        )
+        const multiplierOptions = [3, 4, 5, 6, 7]
+
+        if (Math.random() > 0.9) {//x
+            let multiOp = 2
+
+            if (Math.random() > 0.95) {
+                multiOp = multiplierOptions[Math.floor(Math.random() * multiplierOptions.length)]
+            }
+
+            endNumX *= multiOp
+        }
+
+        if (Math.random() > 0.9) {//y
+            let multiOp = 2
+
+            if (Math.random() > 0.95) {
+                multiOp = multiplierOptions[Math.floor(Math.random() * multiplierOptions.length)]
+            }
+
+            endNumY *= multiOp
+        }
+
+        const moveCountX = Math.floor(Math.random() * endNumX)
+        const moveCountY = Math.floor(Math.random() * endNumY)
+
+        const chosenDirectionX = moveOptionsX[Math.floor(Math.random() * moveOptionsX.length)]
+        const chosenDirectionY = moveOptionsY[Math.floor(Math.random() * moveOptionsY.length)]
+
+        const newMovementsX = Array(moveCountX).fill(chosenDirectionX)
+        const newMovementsY = Array(moveCountY).fill(chosenDirectionY)
+
+        const newMovements = [...newMovementsX, ...newMovementsY]
 
         return newMovements
     }
@@ -357,6 +404,8 @@ export default function Home() {
         if (selectedRuleKey.current === undefined || tileRules.current[selectedRuleKey.current] === undefined) return
 
         tileRules.current[selectedRuleKey.current].push(option)
+
+        refresh()
     }
 
     function getPatternStyle(pattern: string, size = 10) {
@@ -383,12 +432,13 @@ export default function Home() {
             height: `${size}px`,
             background: "gold", // center square
             boxShadow: shadows.join(", "),
+            margin: `${size}px`,
         }
     }
 
     return (
         <div style={{ display: "grid", gridTemplateRows: "1fr", overflow: "auto", position: "relative", zIndex: 0 }}>
-            <div style={{ position: "absolute", top: 0, left: 0, zIndex: 1, width: "100%", display: "grid" }}>
+            <div style={{ position: "absolute", top: 0, left: 0, zIndex: 1, display: "grid" }}>
                 {showingMenu ? (
                     <div className={styles.gameControls}>
                         <div className='simpleFlex'>
@@ -457,16 +507,15 @@ export default function Home() {
                                     </div>
                                 </div>
 
-                                <div className={styles.buttonRow}>
-                                    <button
-                                        className={styles.buttonSecondary}
+                                <div className="simpleFlex">
+                                    <button className="button2"
                                         onClick={fitTilesToCanvas}
                                     >
                                         Fit Canvas
                                     </button>
 
                                     <button
-                                        className={styles.buttonPrimary}
+                                        className="button1"
                                         onClick={generateTiles}
                                     >
                                         Generate
@@ -479,15 +528,24 @@ export default function Home() {
                             <>
                                 <h2>Rules</h2>
 
-                                <div style={{ display: "grid", gap: "1rem", maxHeight: "200px" }}>
-                                    {Object.entries(tileRules.current).map(eachEntry => {
-                                        const eachKey = eachEntry[0]
-                                        const eachValue = eachEntry[1]
+                                <button className={autoGenNewRule.current ? "button1" : "button2"}
+                                    onClick={() => {
+                                        autoGenNewRule.current = !autoGenNewRule.current
+                                        refresh()
+                                    }}
+                                >auto-gen</button>
 
-                                        return (
-                                            <div key={eachKey} style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: ".5rem", border: "1px solid red", }}>
-                                                <div style={{ ...getPatternStyle(eachKey) }}
+                                <div>
+                                    <div style={{ display: "grid", gap: "1rem", maxHeight: "200px", overflow: "auto", alignContent: "flex-start", }}>
+                                        {Object.entries(tileRules.current).map(eachEntry => {
+                                            const eachKey = eachEntry[0]
+                                            const eachValue = eachEntry[1]
+
+                                            return (
+                                                <div key={eachKey} style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: ".5rem", border: "1px solid #000" }}
                                                     onClick={() => {
+                                                        toast.success("selected")
+
                                                         //select key
                                                         selectedRuleKey.current = eachKey
 
@@ -495,59 +553,92 @@ export default function Home() {
                                                         if (tileRules.current[selectedRuleKey.current] === undefined) {
                                                             tileRules.current[selectedRuleKey.current] = []
                                                         }
-                                                    }}
-                                                ></div>
 
-                                                <div className='simpleFlex' style={{}}>
-                                                    {eachValue.map((eachAction, eachActionIndex) => {
-                                                        return (
-                                                            <li key={eachActionIndex}>{eachAction}</li>
-                                                        )
-                                                    })}
+                                                        refresh()
+                                                    }}
+                                                >
+                                                    <div style={{ ...getPatternStyle(eachKey) }}></div>
+
+                                                    <div style={{ display: "grid", gridTemplateColumns: "1fr auto", alignItems: "center" }}>
+                                                        <div className='simpleFlex' style={{ flexWrap: "nowrap", overflow: "auto" }}>
+                                                            {eachValue.length === 0 && <li>do nothing</li>}
+
+                                                            {eachValue.map((eachAction, eachActionIndex) => {
+                                                                return (
+                                                                    <li key={eachActionIndex}>{eachAction}</li>
+                                                                )
+                                                            })}
+                                                        </div>
+
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation()
+
+                                                                delete tileRules.current[eachKey]
+
+                                                                toast.success("deleted")
+
+                                                                refresh()
+                                                            }}
+                                                        >
+                                                            <svg className='svgIcon' xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640"><path d="M183.1 137.4C170.6 124.9 150.3 124.9 137.8 137.4C125.3 149.9 125.3 170.2 137.8 182.7L275.2 320L137.9 457.4C125.4 469.9 125.4 490.2 137.9 502.7C150.4 515.2 170.7 515.2 183.2 502.7L320.5 365.3L457.9 502.6C470.4 515.1 490.7 515.1 503.2 502.6C515.7 490.1 515.7 469.8 503.2 457.3L365.8 320L503.1 182.6C515.6 170.1 515.6 149.8 503.1 137.3C490.6 124.8 470.3 124.8 457.8 137.3L320.5 274.7L183.1 137.4z" /></svg>
+                                                        </button>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        )
-                                    })}
+                                            )
+                                        })}
+                                    </div>
                                 </div>
 
                                 {selectedRuleKey.current !== undefined && tileRules.current[selectedRuleKey.current] !== undefined && (
                                     <>
                                         <h3>Edit Rule</h3>
 
-                                        <div>{selectedRuleKey.current}</div>
+                                        <div style={{ ...getPatternStyle(selectedRuleKey.current) }}></div>
 
                                         <div className='simpleFlex'>
-                                            <button
-                                                onClick={() => {
-                                                    addRuleMovement("left")
-                                                }}
-                                            ></button>
-                                            <button
+                                            <button className='button2'
                                                 onClick={() => {
                                                     addRuleMovement("up")
                                                 }}
-                                            ></button>
-                                            <button
+                                            >up</button>
+
+                                            <button className='button2'
                                                 onClick={() => {
                                                     addRuleMovement("down")
                                                 }}
-                                            ></button>
-                                            <button
+                                            >down</button>
+
+                                            <button className='button2'
+                                                onClick={() => {
+                                                    addRuleMovement("left")
+                                                }}
+                                            >left</button>
+
+                                            <button className='button2'
                                                 onClick={() => {
                                                     addRuleMovement("right")
                                                 }}
-                                            ></button>
+                                            >right</button>
                                         </div>
 
                                         <ul className='simpleFlex'>
+                                            {tileRules.current[selectedRuleKey.current].length === 0 && <li>do nothing</li>}
+
                                             {tileRules.current[selectedRuleKey.current].map((eachAction, eachActionIndex) => {
                                                 return (
                                                     <li key={eachActionIndex}>
                                                         <button
                                                             onClick={() => {
+                                                                if (selectedRuleKey.current === undefined) return
 
+                                                                tileRules.current[selectedRuleKey.current] = tileRules.current[selectedRuleKey.current].filter((eachActionFilter, eachActionFilterIndex) => eachActionFilterIndex !== eachActionIndex)
+
+                                                                refresh()
                                                             }}
-                                                        >close</button>
+                                                        >
+                                                            <svg className='svgIcon' xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640"><path d="M183.1 137.4C170.6 124.9 150.3 124.9 137.8 137.4C125.3 149.9 125.3 170.2 137.8 182.7L275.2 320L137.9 457.4C125.4 469.9 125.4 490.2 137.9 502.7C150.4 515.2 170.7 515.2 183.2 502.7L320.5 365.3L457.9 502.6C470.4 515.1 490.7 515.1 503.2 502.6C515.7 490.1 515.7 469.8 503.2 457.3L365.8 320L503.1 182.6C515.6 170.1 515.6 149.8 503.1 137.3C490.6 124.8 470.3 124.8 457.8 137.3L320.5 274.7L183.1 137.4z" /></svg>
+                                                        </button>
 
                                                         <p>{eachAction}</p>
                                                     </li>
@@ -558,6 +649,65 @@ export default function Home() {
                                     </>
                                 )}
 
+                                <div className="simpleGrid" style={{ gap: "1rem" }}>
+                                    <button className="button2"
+                                        onClick={() => setShowMore(prev => !prev)}
+                                    >
+                                        {showMore ? "Hide Advanced" : "Show More"}
+                                    </button>
+
+                                    {showMore && (
+                                        <div className="simpleGrid">
+                                            <div className="simpleFlex">
+                                                <button
+                                                    className="button2"
+                                                    onClick={() => {
+                                                        const text = JSON.stringify(
+                                                            tileRules.current,
+                                                            null,
+                                                            2
+                                                        )
+
+                                                        navigator.clipboard.writeText(text)
+
+                                                        toast.success("copied!")
+                                                    }}
+                                                >
+                                                    Copy Rules
+                                                </button>
+
+                                                <button
+                                                    className="button1"
+                                                    onClick={() => {
+                                                        try {
+                                                            const parsed = JSON.parse(rulesInput)
+
+                                                            //validation
+                                                            tileRulesSchema.parse(parsed)
+
+                                                            //safety
+                                                            tileRules.current = Object.assign(
+                                                                Object.create(null),
+                                                                parsed
+                                                            )
+
+                                                            toast.success("Rules loaded successfully")
+
+                                                        } catch (error) {
+                                                            consoleAndToastError(error)
+                                                        }
+                                                    }}
+                                                >
+                                                    Paste / Load Rules
+                                                </button>
+                                            </div>
+
+                                            <textarea placeholder="Paste tile rules JSON here..." value={rulesInput}
+                                                onChange={(e) => setRulesInput(e.target.value)}
+                                            />
+                                        </div>
+                                    )}
+                                </div>
                             </>
                         )}
                     </div>

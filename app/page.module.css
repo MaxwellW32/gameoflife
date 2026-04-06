@@ -45,13 +45,16 @@
     background: white;
     border-radius: 20px;
     padding: 1rem;
-    width: min(400px, 100%);
+    width: min(400px, 90vw);
+    height: 60vh;
     box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
     display: grid;
+    align-content: flex-start;
     gap: 1rem;
     position: absolute;
     top: 0;
     left: 0;
+    overflow: auto;
 }
 
 .gameTitle {
@@ -91,38 +94,4 @@
 .inputGroup input:focus {
     border-color: #888;
     box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.06);
-}
-
-.buttonRow {
-    display: flex;
-    gap: 12px;
-}
-
-.buttonPrimary,
-.buttonSecondary {
-    padding: 10px 18px;
-    border: none;
-    border-radius: 12px;
-    font-size: 15px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: 0.2s;
-}
-
-.buttonPrimary {
-    background: black;
-    color: white;
-}
-
-.buttonPrimary:hover {
-    transform: translateY(-1px);
-}
-
-.buttonSecondary {
-    background: #f3f3f3;
-    color: black;
-}
-
-.buttonSecondary:hover {
-    background: #e9e9e9;
 }
