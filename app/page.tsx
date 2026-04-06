@@ -22,10 +22,6 @@ type moveActionType =
     | "left"
     | "right"
 
-const tileRules: { [key: string]: moveActionType[] } = {
-    "grey_grey_grey_grey_grey_grey_grey_grey": [],
-}
-
 export default function Home() {
     const tileWidth = useRef(40)
     const tileHeight = useRef(40)
@@ -39,6 +35,16 @@ export default function Home() {
     const mounted = useRef(false)
     const [showingMenu, showingMenuSet] = useState(false)
     const [, refresherSet] = useState(false)
+
+    const screenOptions = ["home", "rules"] as const
+    type screenOptionsType = typeof screenOptions
+    const [screen, screenSet] = useState<screenOptionsType[number]>("home")
+
+    const tileRules = useRef<{ [key: string]: moveActionType[] }>({
+        "grey_grey_grey_grey_grey_grey_grey_grey": [],
+    })
+    const autoGenNewRule = useRef(true)
+    const selectedRuleKey = useRef<string | undefined>(undefined)
 
     //xy is law
     //x - columnIndex - tileWidth - left
@@ -143,15 +149,20 @@ export default function Home() {
 
             const seen8PointCoordsString = get8PointCoordinates(eachTile, staticTileColumnRowIndexObj).join("_")
 
-            let actions: moveActionType[] | undefined = tileRules[seen8PointCoordsString]
+            let actions: moveActionType[] | undefined = tileRules.current[seen8PointCoordsString]
             if (actions === undefined) {
-                const newRules = generateUniqueRandomTileRules()
+                if (autoGenNewRule.current) {
+                    const newRules = generateUniqueRandomTileRules()
 
-                tileRules[seen8PointCoordsString] = newRules
-                actions = tileRules[seen8PointCoordsString]
+                    tileRules.current[seen8PointCoordsString] = newRules
+                    actions = tileRules.current[seen8PointCoordsString]
 
-                console.log(`$no moves for ${seen8PointCoordsString} - creating new movements`);
-                console.log(`$tileRules`, tileRules);
+                    console.log(`$no moves for ${seen8PointCoordsString} - creating new movements`);
+                    console.log(`$tileRules`, tileRules.current);
+
+                } else {
+                    continue
+                }
             }
 
             actions.forEach(eachAction => {
@@ -336,84 +347,223 @@ export default function Home() {
         const seenWidth = sectionContRef.current.clientWidth
         const seenHeight = sectionContRef.current.clientHeight
 
-        tileWidth.current = seenWidth / tileCount.current
-        tileHeight.current = seenHeight / tileCount.current
+        tileWidth.current = Math.floor(seenWidth / tileCount.current)
+        tileHeight.current = Math.floor(seenHeight / tileCount.current)
 
         refresh()
     }
 
+    function addRuleMovement(option: moveActionType) {
+        if (selectedRuleKey.current === undefined || tileRules.current[selectedRuleKey.current] === undefined) return
+
+        tileRules.current[selectedRuleKey.current].push(option)
+    }
+
+    function getPatternStyle(pattern: string, size = 10) {
+        const colors = pattern.split("_")
+
+        const positions = [
+            [-1, -1], // top left
+            [0, -1],  // top middle
+            [1, -1],  // top right
+            [-1, 0],  // middle left
+            [1, 0],   // middle right
+            [-1, 1],  // bottom left
+            [0, 1],   // bottom middle
+            [1, 1],   // bottom right
+        ]
+
+        const shadows = colors.map((color, i) => {
+            const [x, y] = positions[i]
+            return `${x * size}px ${y * size}px 0 0 ${color}`
+        })
+
+        return {
+            width: `${size}px`,
+            height: `${size}px`,
+            background: "gold", // center square
+            boxShadow: shadows.join(", "),
+        }
+    }
+
     return (
         <div style={{ display: "grid", gridTemplateRows: "1fr", overflow: "auto", position: "relative", zIndex: 0 }}>
-            <div style={{ position: "absolute", top: 0, left: 0, zIndex: 1, width: "100%" }}>
+            <div style={{ position: "absolute", top: 0, left: 0, zIndex: 1, width: "100%", display: "grid" }}>
                 {showingMenu ? (
                     <div className={styles.gameControls}>
-                        <button
-                            onClick={() => {
-                                showingMenuSet(false)
-                            }}
-                        >
-                            <svg className='svgIcon' xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640"><path d="M183.1 137.4C170.6 124.9 150.3 124.9 137.8 137.4C125.3 149.9 125.3 170.2 137.8 182.7L275.2 320L137.9 457.4C125.4 469.9 125.4 490.2 137.9 502.7C150.4 515.2 170.7 515.2 183.2 502.7L320.5 365.3L457.9 502.6C470.4 515.1 490.7 515.1 503.2 502.6C515.7 490.1 515.7 469.8 503.2 457.3L365.8 320L503.1 182.6C515.6 170.1 515.6 149.8 503.1 137.3C490.6 124.8 470.3 124.8 457.8 137.3L320.5 274.7L183.1 137.4z" /></svg>
-                        </button>
-
-                        <h1 className={styles.gameTitle}>Game Of Life</h1>
-
-                        <div className={styles.controlsRow}>
-                            <div className={styles.inputGroup}>
-                                <label>Tile Width</label>
-                                <input
-                                    type="number"
-                                    value={tileWidth.current}
-                                    onChange={(e) => {
-                                        tileWidth.current = parseInt(e.target.value)
-                                        refresh()
-                                    }}
-                                />
-                            </div>
-
-                            <div className={styles.inputGroup}>
-                                <label>Tile Height</label>
-                                <input
-                                    type="number"
-                                    value={tileHeight.current}
-                                    onChange={(e) => {
-                                        tileHeight.current = parseInt(e.target.value)
-                                        refresh()
-                                    }}
-                                />
-                            </div>
-
-                            <div className={styles.inputGroup}>
-                                <label>Grid Size</label>
-                                <input
-                                    type="number"
-                                    value={tileCount.current}
-                                    onChange={(e) => {
-                                        tileCount.current = parseInt(e.target.value)
-                                        refresh()
-                                    }}
-                                />
-                            </div>
-                        </div>
-
-                        <div className={styles.buttonRow}>
-                            <button
-                                className={styles.buttonSecondary}
-                                onClick={fitTilesToCanvas}
-                            >
-                                Fit Canvas
-                            </button>
+                        <div className='simpleFlex'>
+                            <ul className='simpleFlex'>
+                                {screenOptions.map((eachScreenOption) => {
+                                    return (
+                                        <li key={eachScreenOption}
+                                            onClick={() => {
+                                                screenSet(eachScreenOption)
+                                            }}
+                                        >
+                                            {eachScreenOption}
+                                        </li>
+                                    )
+                                })}
+                            </ul>
 
                             <button
-                                className={styles.buttonPrimary}
-                                onClick={generateTiles}
+                                onClick={() => {
+                                    showingMenuSet(false)
+                                }}
                             >
-                                Generate
+                                <svg className='svgIcon' xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640"><path d="M183.1 137.4C170.6 124.9 150.3 124.9 137.8 137.4C125.3 149.9 125.3 170.2 137.8 182.7L275.2 320L137.9 457.4C125.4 469.9 125.4 490.2 137.9 502.7C150.4 515.2 170.7 515.2 183.2 502.7L320.5 365.3L457.9 502.6C470.4 515.1 490.7 515.1 503.2 502.6C515.7 490.1 515.7 469.8 503.2 457.3L365.8 320L503.1 182.6C515.6 170.1 515.6 149.8 503.1 137.3C490.6 124.8 470.3 124.8 457.8 137.3L320.5 274.7L183.1 137.4z" /></svg>
                             </button>
                         </div>
+
+                        {screen === "home" && (
+                            <>
+                                <h1 className={styles.gameTitle}>Game Of Life</h1>
+
+                                <div className={styles.controlsRow}>
+                                    <div className={styles.inputGroup}>
+                                        <label>Tile Width</label>
+                                        <input
+                                            type="number"
+                                            value={tileWidth.current}
+                                            onChange={(e) => {
+                                                tileWidth.current = parseInt(e.target.value)
+                                                refresh()
+                                            }}
+                                        />
+                                    </div>
+
+                                    <div className={styles.inputGroup}>
+                                        <label>Tile Height</label>
+                                        <input
+                                            type="number"
+                                            value={tileHeight.current}
+                                            onChange={(e) => {
+                                                tileHeight.current = parseInt(e.target.value)
+                                                refresh()
+                                            }}
+                                        />
+                                    </div>
+
+                                    <div className={styles.inputGroup}>
+                                        <label>Grid Size</label>
+                                        <input
+                                            type="number"
+                                            value={tileCount.current}
+                                            onChange={(e) => {
+                                                tileCount.current = parseInt(e.target.value)
+                                                refresh()
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className={styles.buttonRow}>
+                                    <button
+                                        className={styles.buttonSecondary}
+                                        onClick={fitTilesToCanvas}
+                                    >
+                                        Fit Canvas
+                                    </button>
+
+                                    <button
+                                        className={styles.buttonPrimary}
+                                        onClick={generateTiles}
+                                    >
+                                        Generate
+                                    </button>
+                                </div>
+                            </>
+                        )}
+
+                        {screen === "rules" && (
+                            <>
+                                <h2>Rules</h2>
+
+                                <div style={{ display: "grid", gap: "1rem", maxHeight: "200px" }}>
+                                    {Object.entries(tileRules.current).map(eachEntry => {
+                                        const eachKey = eachEntry[0]
+                                        const eachValue = eachEntry[1]
+
+                                        return (
+                                            <div key={eachKey} style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: ".5rem", border: "1px solid red", }}>
+                                                <div style={{ ...getPatternStyle(eachKey) }}
+                                                    onClick={() => {
+                                                        //select key
+                                                        selectedRuleKey.current = eachKey
+
+                                                        //add to obj
+                                                        if (tileRules.current[selectedRuleKey.current] === undefined) {
+                                                            tileRules.current[selectedRuleKey.current] = []
+                                                        }
+                                                    }}
+                                                ></div>
+
+                                                <div className='simpleFlex' style={{}}>
+                                                    {eachValue.map((eachAction, eachActionIndex) => {
+                                                        return (
+                                                            <li key={eachActionIndex}>{eachAction}</li>
+                                                        )
+                                                    })}
+                                                </div>
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+
+                                {selectedRuleKey.current !== undefined && tileRules.current[selectedRuleKey.current] !== undefined && (
+                                    <>
+                                        <h3>Edit Rule</h3>
+
+                                        <div>{selectedRuleKey.current}</div>
+
+                                        <div className='simpleFlex'>
+                                            <button
+                                                onClick={() => {
+                                                    addRuleMovement("left")
+                                                }}
+                                            ></button>
+                                            <button
+                                                onClick={() => {
+                                                    addRuleMovement("up")
+                                                }}
+                                            ></button>
+                                            <button
+                                                onClick={() => {
+                                                    addRuleMovement("down")
+                                                }}
+                                            ></button>
+                                            <button
+                                                onClick={() => {
+                                                    addRuleMovement("right")
+                                                }}
+                                            ></button>
+                                        </div>
+
+                                        <ul className='simpleFlex'>
+                                            {tileRules.current[selectedRuleKey.current].map((eachAction, eachActionIndex) => {
+                                                return (
+                                                    <li key={eachActionIndex}>
+                                                        <button
+                                                            onClick={() => {
+
+                                                            }}
+                                                        >close</button>
+
+                                                        <p>{eachAction}</p>
+                                                    </li>
+                                                )
+                                            })}
+                                        </ul>
+
+                                    </>
+                                )}
+
+                            </>
+                        )}
                     </div>
                 ) : (
                     <>
-                        <div
+                        <div style={{ justifySelf: "flex-start" }}
                             onClick={() => {
                                 showingMenuSet(true)
                             }}
@@ -425,7 +575,7 @@ export default function Home() {
             </div>
 
             <div ref={sectionContRef} style={{ display: "grid", overflow: "auto" }}>
-                <div ref={tileContRef} className={styles.tileCont} style={{ width: `${tileWidth.current * tileCount.current}px`, height: `${tileHeight.current * tileCount.current}px`, position: "relative", "--tileWidth": `${tileWidth.current}px`, "--tileHeight": `${tileHeight.current}px` } as React.CSSProperties}
+                <div ref={tileContRef} className={styles.tileCont} style={{ width: `${tileWidth.current * tileCount.current}px`, height: `${tileHeight.current * tileCount.current}px`, "--tileWidth": `${tileWidth.current}px`, "--tileHeight": `${tileHeight.current}px` } as React.CSSProperties}
                     onClick={(e) => {
                         const rect = e.currentTarget.getBoundingClientRect()
 

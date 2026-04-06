@@ -5,6 +5,8 @@
         linear-gradient(black 1px, transparent 1px),
         linear-gradient(90deg, black 1px, transparent 1px);
     background-size: var(--tileWidth) var(--tileHeight);
+    position: relative;
+    overflow: hidden;
 }
 
 .tile {
@@ -16,7 +18,7 @@
 }
 
 .grayTile {
-    background-color: gray;
+    background-color: grey;
     border: 0.5px solid #000;
     pointer-events: all;
 }
@@ -45,9 +47,8 @@
     padding: 1rem;
     width: min(400px, 100%);
     box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
+    display: grid;
+    gap: 1rem;
     position: absolute;
     top: 0;
     left: 0;
