@@ -46,6 +46,12 @@ export default function Home() {
     const [showMore, setShowMore] = useState(false)
     const [rulesInput, setRulesInput] = useState("")
 
+    //each index has a value - 0-7
+    //directionAmtX, directionAmtY, rotations, scale, colour
+    //grey tiles 1, black 2, white 3 
+    //multiply by the index value
+    //total on left is x, right is y - 18, 66, 84
+
     //xy is law
     //x - columnIndex - tileWidth - left
     //y - rowIndex - tileHeight - top
@@ -161,7 +167,8 @@ export default function Home() {
             let actions: moveActionType[] | undefined = tileRules.current[seen8PointCoordsString]
             if (actions === undefined) {
                 if (autoGenNewRule.current) {
-                    const newRules = generateUniqueRandomTileRules()
+                    // const newRules = generateUniqueRandomTileRules()
+                    const newRules = getActionsFromCoords(seen8PointCoordsString)
 
                     tileRules.current[seen8PointCoordsString] = newRules
                     actions = tileRules.current[seen8PointCoordsString]
@@ -175,6 +182,7 @@ export default function Home() {
                 }
             }
 
+            //apply actions
             actions.forEach(eachAction => {
                 if (eachAction === "up") {
                     eachTile.rowIndex = ensureInBounds(eachTile.rowIndex - 1)
@@ -237,21 +245,30 @@ export default function Home() {
             }
         }
 
-
         //show update
         for (let index = 0; index < tiles.current.length; index++) {
             const eachTile = tiles.current[index];
 
+            //update pos
             updateTilePosOnDom(eachTile)
+
+            // //apply colors
+            // const seen8PointCoordsString = get8PointCoordinates(eachTile, tileColumnRowIndexObj.current).join("_")
+            // const { total } = getTotalsFromCoords(seen8PointCoordsString)
+
+            // const decNum = total / 84 //max number
+
+            // const clamped = Math.max(0, Math.min(1, decNum))
+            // const hue = clamped * 360
+            // console.log(`$decNum`, decNum)
+
+            // eachTile.element.style.borderBlock = `${tileHeight.current * 0.1}px inset hsl(${hue}, 100%, 50%)`
+            // eachTile.element.style.borderInline = `${tileWidth.current * 0.1}px inset hsl(${hue}, 100%, 50%)`
         }
 
         //reset and update tileColumnRowIndexObj with tiles
         clearTileColumnRowIndexObj()
-        for (let index = 0; index < tiles.current.length; index++) {
-            const eachTile = tiles.current[index];
-
-            tileColumnRowIndexObj.current[`${eachTile.columnIndex}_${eachTile.rowIndex}`] = { type: eachTile.type }
-        }
+        addTilesToColumnRowIndexObj()
 
         setTimeout(() => {
             runTileLoop()
@@ -300,6 +317,11 @@ export default function Home() {
             currentRowIndex = wrapTileIndex(currentRowIndex)
 
             const foundAdjTile = seenTileColumnRowIndexObj[`${currentColumnIndex}_${currentRowIndex}`]
+            if (foundAdjTile === undefined) {
+                console.log(`$currentColumnIndex`, currentColumnIndex)
+                console.log(`$currentRowIndex`, currentRowIndex)
+
+            }
             if (foundAdjTile !== null) {
                 tileTypeAtIndexArr[index] = foundAdjTile.type
             }
@@ -328,46 +350,58 @@ export default function Home() {
         tile.element.style.top = `${tile.rowIndex * tileHeight.current}px`
     }
 
-    function generateUniqueRandomTileRules() {
-        const moveOptionsX: moveActionType[] = [
-            "left",
-            "right",
-        ]
-        const moveOptionsY: moveActionType[] = [
-            "up",
-            "down",
-        ]
+    function getTotalsFromCoords(seen8PointCoordsString: string) {
+        let total = 0
+        let leftTotal = 0
+        let rightTotal = 0
 
-        let endNumX = 4
-        let endNumY = 4
+        const coordsArr = seen8PointCoordsString.split("_")
 
-        const multiplierOptions = [3, 4, 5, 6, 7]
-
-        if (Math.random() > 0.9) {//x
-            let multiOp = 2
-
-            if (Math.random() > 0.95) {
-                multiOp = multiplierOptions[Math.floor(Math.random() * multiplierOptions.length)]
-            }
-
-            endNumX *= multiOp
+        const colorValueObj: { [key: string]: number } = {
+            "grey": 1,
+            "black": 2,
+            "white": 3
         }
 
-        if (Math.random() > 0.9) {//y
-            let multiOp = 2
+        for (let index = 0; index < coordsArr.length; index++) {
+            const seenTileColour = coordsArr[index]
+            const valForTile = colorValueObj[seenTileColour] * index
 
-            if (Math.random() > 0.95) {
-                multiOp = multiplierOptions[Math.floor(Math.random() * multiplierOptions.length)]
+            if (index < 4) {
+                leftTotal += valForTile
+
+            } else {
+                rightTotal += valForTile
             }
 
-            endNumY *= multiOp
+            total += valForTile
         }
 
-        const moveCountX = Math.floor(Math.random() * endNumX)
-        const moveCountY = Math.floor(Math.random() * endNumY)
+        return { total, leftTotal, rightTotal }
+    }
 
-        const chosenDirectionX = moveOptionsX[Math.floor(Math.random() * moveOptionsX.length)]
-        const chosenDirectionY = moveOptionsY[Math.floor(Math.random() * moveOptionsY.length)]
+    function getActionsFromCoords(seen8PointCoordsString: string) {
+        const { leftTotal, rightTotal } = getTotalsFromCoords(seen8PointCoordsString)
+
+        let moveCountX = Math.floor(Math.random() * 3) + 1
+        let moveCountY = Math.floor(Math.random() * 3) + 1
+
+        if (Math.random() > 0.95) {//x
+            moveCountX *= 2
+        }
+
+        if (Math.random() > 0.95) {//y
+            moveCountY *= 2
+        }
+
+        const remanx = leftTotal / 18
+        const remanY = rightTotal / 66
+
+        console.log(`$remanx`, remanx)
+        console.log(`$remanY`, remanY)
+
+        const chosenDirectionX = Math.random() > remanx ? "left" : "right"
+        const chosenDirectionY = Math.random() > remanY ? "up" : "down"
 
         const newMovementsX = Array(moveCountX).fill(chosenDirectionX)
         const newMovementsY = Array(moveCountY).fill(chosenDirectionY)
@@ -382,6 +416,13 @@ export default function Home() {
             for (let indexColumn = 0; indexColumn < tileCount.current; indexColumn++) {//x
                 tileColumnRowIndexObj.current[`${indexColumn}_${indexRow}`] = null
             }
+        }
+    }
+    function addTilesToColumnRowIndexObj() {
+        for (let index = 0; index < tiles.current.length; index++) {
+            const eachTile = tiles.current[index];
+
+            tileColumnRowIndexObj.current[`${eachTile.columnIndex}_${eachTile.rowIndex}`] = { type: eachTile.type }
         }
     }
 
@@ -501,6 +542,10 @@ export default function Home() {
                                             value={tileCount.current}
                                             onChange={(e) => {
                                                 tileCount.current = parseInt(e.target.value)
+
+                                                clearTileColumnRowIndexObj()
+                                                addTilesToColumnRowIndexObj()
+
                                                 refresh()
                                             }}
                                         />
