@@ -43,8 +43,8 @@ export default function Home() {
     const autoGenNewRule = useRef(true)
     const selectedRuleKey = useRef<string | undefined>(undefined)
 
-    const [showMore, setShowMore] = useState(false)
-    const [rulesInput, setRulesInput] = useState("")
+    const [showMore, showMoreSet] = useState(false)
+    const [rulesInput, rulesInputSet] = useState("")
 
     //each index has a value - 0-7
     //directionAmtX, directionAmtY, rotations, scale, colour
@@ -383,8 +383,10 @@ export default function Home() {
     function getActionsFromCoords(seen8PointCoordsString: string) {
         const { leftTotal, rightTotal } = getTotalsFromCoords(seen8PointCoordsString)
 
-        let moveCountX = Math.floor(Math.random() * 3) + 1
-        let moveCountY = Math.floor(Math.random() * 3) + 1
+        const maxNum = 3
+
+        let moveCountX = Math.floor(Math.random() * maxNum)
+        let moveCountY = Math.floor(Math.random() * maxNum)
 
         if (Math.random() > 0.95) {//x
             moveCountX *= 2
@@ -397,11 +399,14 @@ export default function Home() {
         const remanx = leftTotal / 18
         const remanY = rightTotal / 66
 
-        console.log(`$remanx`, remanx)
-        console.log(`$remanY`, remanY)
-
         const chosenDirectionX = Math.random() > remanx ? "left" : "right"
         const chosenDirectionY = Math.random() > remanY ? "up" : "down"
+
+        if (moveCountX === 0 && moveCountY === 0) {
+            //try once more
+            moveCountX = Math.floor(Math.random() * maxNum)
+            moveCountY = Math.floor(Math.random() * maxNum)
+        }
 
         const newMovementsX = Array(moveCountX).fill(chosenDirectionX)
         const newMovementsY = Array(moveCountY).fill(chosenDirectionY)
@@ -573,12 +578,78 @@ export default function Home() {
                             <>
                                 <h2>Rules</h2>
 
-                                <button className={autoGenNewRule.current ? "button1" : "button2"}
-                                    onClick={() => {
-                                        autoGenNewRule.current = !autoGenNewRule.current
-                                        refresh()
-                                    }}
-                                >auto-gen</button>
+                                <div className='simpleFlex'>
+
+                                    <button className={autoGenNewRule.current ? "button1" : "button2"}
+                                        onClick={() => {
+                                            autoGenNewRule.current = !autoGenNewRule.current
+                                            refresh()
+                                        }}
+                                    >auto-gen</button>
+
+                                    <button className="button2"
+                                        onClick={() => {
+                                            showMoreSet(prev => !prev)
+                                        }}
+                                    >
+                                        {showMore ? "Hide Advanced" : "Show More"}
+                                    </button>
+                                </div>
+
+                                {showMore && (
+                                    <div className="simpleGrid" style={{ gap: "1rem" }}>
+                                        <div className="simpleFlex">
+                                            <button
+                                                className="button2"
+                                                onClick={() => {
+                                                    const text = JSON.stringify(
+                                                        tileRules.current,
+                                                        null,
+                                                        2
+                                                    )
+
+                                                    navigator.clipboard.writeText(text)
+
+                                                    //set latest rules to input
+                                                    rulesInputSet(JSON.stringify(tileRules.current, null, 2))
+
+                                                    toast.success("copied!")
+                                                }}
+                                            >
+                                                Copy Rules
+                                            </button>
+
+                                            <button
+                                                className="button1"
+                                                onClick={() => {
+                                                    try {
+                                                        const parsed = JSON.parse(rulesInput)
+
+                                                        //validation
+                                                        tileRulesSchema.parse(parsed)
+
+                                                        //safety
+                                                        tileRules.current = Object.assign(
+                                                            Object.create(null),
+                                                            parsed
+                                                        )
+
+                                                        toast.success("Rules loaded successfully")
+
+                                                    } catch (error) {
+                                                        consoleAndToastError(error)
+                                                    }
+                                                }}
+                                            >
+                                                Load Rules
+                                            </button>
+                                        </div>
+
+                                        <textarea placeholder="Paste tile rules JSON here..." value={rulesInput}
+                                            onChange={(e) => rulesInputSet(e.target.value)}
+                                        />
+                                    </div>
+                                )}
 
                                 <div>
                                     <div style={{ display: "grid", gap: "1rem", maxHeight: "200px", overflow: "auto", alignContent: "flex-start", }}>
@@ -693,66 +764,6 @@ export default function Home() {
 
                                     </>
                                 )}
-
-                                <div className="simpleGrid" style={{ gap: "1rem" }}>
-                                    <button className="button2"
-                                        onClick={() => setShowMore(prev => !prev)}
-                                    >
-                                        {showMore ? "Hide Advanced" : "Show More"}
-                                    </button>
-
-                                    {showMore && (
-                                        <div className="simpleGrid">
-                                            <div className="simpleFlex">
-                                                <button
-                                                    className="button2"
-                                                    onClick={() => {
-                                                        const text = JSON.stringify(
-                                                            tileRules.current,
-                                                            null,
-                                                            2
-                                                        )
-
-                                                        navigator.clipboard.writeText(text)
-
-                                                        toast.success("copied!")
-                                                    }}
-                                                >
-                                                    Copy Rules
-                                                </button>
-
-                                                <button
-                                                    className="button1"
-                                                    onClick={() => {
-                                                        try {
-                                                            const parsed = JSON.parse(rulesInput)
-
-                                                            //validation
-                                                            tileRulesSchema.parse(parsed)
-
-                                                            //safety
-                                                            tileRules.current = Object.assign(
-                                                                Object.create(null),
-                                                                parsed
-                                                            )
-
-                                                            toast.success("Rules loaded successfully")
-
-                                                        } catch (error) {
-                                                            consoleAndToastError(error)
-                                                        }
-                                                    }}
-                                                >
-                                                    Paste / Load Rules
-                                                </button>
-                                            </div>
-
-                                            <textarea placeholder="Paste tile rules JSON here..." value={rulesInput}
-                                                onChange={(e) => setRulesInput(e.target.value)}
-                                            />
-                                        </div>
-                                    )}
-                                </div>
                             </>
                         )}
                     </div>
