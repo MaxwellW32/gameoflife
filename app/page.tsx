@@ -390,10 +390,18 @@ export default function Home() {
 
         if (Math.random() > 0.95) {//x
             moveCountX *= 2
+
+            if (Math.random() > 0.95) {
+                moveCountX *= 2
+            }
         }
 
         if (Math.random() > 0.95) {//y
             moveCountY *= 2
+
+            if (Math.random() > 0.95) {
+                moveCountY *= 2
+            }
         }
 
         const remanx = leftTotal / 18
@@ -616,7 +624,7 @@ export default function Home() {
                                                     toast.success("copied!")
                                                 }}
                                             >
-                                                Populate Rules
+                                                Copy Rules
                                             </button>
 
                                             <button
