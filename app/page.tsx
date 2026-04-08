@@ -608,15 +608,15 @@ export default function Home() {
                                                         2
                                                     )
 
-                                                    navigator.clipboard.writeText(text)
-
                                                     //set latest rules to input
                                                     rulesInputSet(text)
+
+                                                    navigator.clipboard.writeText(text)
 
                                                     toast.success("copied!")
                                                 }}
                                             >
-                                                Copy Rules
+                                                Populate Rules
                                             </button>
 
                                             <button
