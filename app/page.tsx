@@ -611,7 +611,7 @@ export default function Home() {
                                                     navigator.clipboard.writeText(text)
 
                                                     //set latest rules to input
-                                                    rulesInputSet(JSON.stringify(tileRules.current, null, 2))
+                                                    rulesInputSet(text)
 
                                                     toast.success("copied!")
                                                 }}
