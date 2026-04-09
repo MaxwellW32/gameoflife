@@ -73,6 +73,15 @@ export default function Home() {
 
     }, [])
 
+
+    function promiseFunc(funcToRun: () => void) {
+        return new Promise(resolve => {
+            funcToRun()
+
+            resolve(true)
+        })
+    }
+
     function generateTiles() {
         if (tileContRef.current === null) return
 
@@ -168,7 +177,7 @@ export default function Home() {
             if (actions === undefined) {
                 if (autoGenNewRule.current) {
                     // const newRules = generateUniqueRandomTileRules()
-                    const newRules = getActionsFromCoords(seen8PointCoordsString)
+                    const newRules = getActionsFromCoords()
 
                     tileRules.current[seen8PointCoordsString] = newRules
                     actions = tileRules.current[seen8PointCoordsString]
@@ -350,78 +359,92 @@ export default function Home() {
         tile.element.style.top = `${tile.rowIndex * tileHeight.current}px`
     }
 
-    function getTotalsFromCoords(seen8PointCoordsString: string) {
-        let total = 0
-        let leftTotal = 0
-        let rightTotal = 0
+    // function getTotalsFromCoords(seen8PointCoordsString: string) {
+    //     let total = 0
+    //     let leftTotal = 0
+    //     let rightTotal = 0
 
-        const coordsArr = seen8PointCoordsString.split("_")
+    //     const coordsArr = seen8PointCoordsString.split("_")
 
-        const colorValueObj: { [key: string]: number } = {
-            "grey": 1,
-            "black": 2,
-            "white": 3
+    //     const colorValueObj: { [key: string]: number } = {
+    //         "grey": 1,
+    //         "black": 2,
+    //         "white": 3
+    //     }
+
+    //     for (let index = 0; index < coordsArr.length; index++) {
+    //         const seenTileColour = coordsArr[index]
+    //         const valForTile = colorValueObj[seenTileColour] * index
+
+    //         if (index < 4) {
+    //             leftTotal += valForTile
+
+    //         } else {
+    //             rightTotal += valForTile
+    //         }
+
+    //         total += valForTile
+    //     }
+
+    //     return { total, leftTotal, rightTotal }
+    // }
+
+    function getActionsFromCoords() {
+        const endVal = 5
+
+        let maxNum = Math.floor(Math.random() * endVal)
+
+        if (Math.random() > 0.95) {
+            maxNum = endVal + 1
         }
 
-        for (let index = 0; index < coordsArr.length; index++) {
-            const seenTileColour = coordsArr[index]
-            const valForTile = colorValueObj[seenTileColour] * index
-
-            if (index < 4) {
-                leftTotal += valForTile
-
-            } else {
-                rightTotal += valForTile
-            }
-
-            total += valForTile
-        }
-
-        return { total, leftTotal, rightTotal }
-    }
-
-    function getActionsFromCoords(seen8PointCoordsString: string) {
-        const { leftTotal, rightTotal } = getTotalsFromCoords(seen8PointCoordsString)
-
-        const maxNum = 3
-
-        let moveCountX = Math.floor(Math.random() * maxNum)
-        let moveCountY = Math.floor(Math.random() * maxNum)
-
-        if (Math.random() > 0.95) {//x
-            moveCountX *= 2
-
-            if (Math.random() > 0.95) {
-                moveCountX *= 2
-            }
-        }
-
-        if (Math.random() > 0.95) {//y
-            moveCountY *= 2
-
-            if (Math.random() > 0.95) {
-                moveCountY *= 2
+        //check if 0
+        if (maxNum === 0) {
+            if (Math.random() < 0.98) {
+                maxNum = Math.floor(Math.random() * endVal) + 1
             }
         }
 
-        const remanx = leftTotal / 18
-        const remanY = rightTotal / 66
+        const directions: moveActionType[] = ["up", "down", "left", "right"]
 
-        const chosenDirectionX = Math.random() > remanx ? "left" : "right"
-        const chosenDirectionY = Math.random() > remanY ? "up" : "down"
+        let dx = 0
+        let dy = 0
 
-        if (moveCountX === 0 && moveCountY === 0) {
-            //try once more
-            moveCountX = Math.floor(Math.random() * maxNum)
-            moveCountY = Math.floor(Math.random() * maxNum)
+        for (let index = 0; index < maxNum; index++) {
+            const move = directions[Math.floor(Math.random() * directions.length)]
+
+            if (move === "up") dy -= 1
+            if (move === "down") dy += 1
+
+            if (move === "left") dx -= 1
+            if (move === "right") dx += 1
         }
 
-        const newMovementsX = Array(moveCountX).fill(chosenDirectionX)
-        const newMovementsY = Array(moveCountY).fill(chosenDirectionY)
+        const movements: moveActionType[] = []
 
-        const newMovements = [...newMovementsX, ...newMovementsY]
+        if (dx > 0) {
+            movements.push(
+                ...Array(dx).fill("right")
+            )
+        } else if (dx < 0) {
+            movements.push(
+                ...Array(Math.abs(dx)).fill(
+                    "left"
+                )
+            )
+        }
 
-        return newMovements
+        if (dy > 0) {
+            movements.push(
+                ...Array(dy).fill("down")
+            )
+        } else if (dy < 0) {
+            movements.push(
+                ...Array(Math.abs(dy)).fill("up")
+            )
+        }
+
+        return movements
     }
 
     function clearTileColumnRowIndexObj() {
@@ -431,6 +454,7 @@ export default function Home() {
             }
         }
     }
+
     function addTilesToColumnRowIndexObj() {
         for (let index = 0; index < tiles.current.length; index++) {
             const eachTile = tiles.current[index];
@@ -574,7 +598,11 @@ export default function Home() {
 
                                     <button
                                         className="button1"
-                                        onClick={generateTiles}
+                                        onClick={() => {
+                                            promiseFunc(() => {
+                                                generateTiles()
+                                            })
+                                        }}
                                     >
                                         Generate
                                     </button>
