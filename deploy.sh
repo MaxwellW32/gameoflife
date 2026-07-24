@@ -1,19 +1,15 @@
 #!/bin/bash
-
-# Stop script on any error
 set -e
+cd "$(dirname "$0")"
 
-# Fetch the latest code from GitHub
 git pull origin master
 
-# Install dependencies
-npm install
+# Reproducible install from package-lock.json (never mutates the lockfile)
+npm ci
 
-# Build the app
+# Build while the old server keeps serving from .next; brief blip on restart.
 npm run build
 
-# Restart the PM2 process
-pm2 stop gameoflife
-pm2 start gameoflife
+pm2 startOrRestart ecosystem.config.js
 
 echo "Deployment complete."
